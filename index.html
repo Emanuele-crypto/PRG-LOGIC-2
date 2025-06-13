@@ -195,7 +195,7 @@ body {
    border-radius: 5px;
    padding: 12px;
    page-break-inside: avoid;
-   min-height: 540px;
+   min-height: 400px;
 }
 
 /* COLORI COMBINAZIONI */
@@ -766,11 +766,23 @@ body {
        background-color: #d4edda !important;
    }
    
+   .combination-verde-row .print-table-cell {
+       background-color: #d4edda !important;
+   }
+   
    .combination-azzurro-row {
        background-color: #d1ecf1 !important;
    }
    
+   .combination-azzurro-row .print-table-cell {
+       background-color: #d1ecf1 !important;
+   }
+   
    .combination-viola-row {
+       background-color: #e2e3f3 !important;
+   }
+   
+   .combination-viola-row .print-table-cell {
        background-color: #e2e3f3 !important;
    }
    
@@ -1006,7 +1018,7 @@ $(document).ready(function() {
    // Variabili per gestione trasferimenti
    let transferData = {};
 
-   // Definizione varietà per ogni tipo di agrume
+   // MODIFICATO: Definizione varietà per ogni tipo di agrume
    const varietyOptions = {
        'LIMONE': [
            { value: 'VERDELLO', text: 'Verdello' },
@@ -1024,9 +1036,15 @@ $(document).ready(function() {
            { value: 'VARIE', text: 'Varie' },
            { value: 'ALTRO', text: 'Altro (specifica quale)' }
        ],
-       'ARANCIA': [
-           { value: 'BIONDA', text: 'Bionda' },
-           { value: 'ROSSA', text: 'Rossa' },
+       // MODIFICATO: Stesse varietà per entrambi i tipi di arancia, senza BIONDA e ROSSA
+       'ARANCIA ROSSA': [
+           { value: 'MORO', text: 'Moro' },
+           { value: 'SANGUINELLA', text: 'Sanguinella' },
+           { value: 'TAROCCO', text: 'Tarocco' },
+           { value: 'VARIE', text: 'Varie' },
+           { value: 'ALTRO', text: 'Altro (specifica quale)' }
+       ],
+       'ARANCIA BIONDA': [
            { value: 'MORO', text: 'Moro' },
            { value: 'SANGUINELLA', text: 'Sanguinella' },
            { value: 'TAROCCO', text: 'Tarocco' },
@@ -1073,13 +1091,12 @@ $(document).ready(function() {
            case 'LIMONE':
                id += "LE ";
                break;
-           case 'ARANCIA':
-               // Distingui tra rossa e bionda in base alla varietà
-               if (varieta === 'MORO' || varieta === 'SANGUINELLA' || varieta === 'TAROCCO' || varieta === 'ROSSA') {
-                   id += "AR ";
-               } else {
-                   id += "AB ";
-               }
+           // MODIFICATO: Gestisce sia ARANCIA ROSSA che ARANCIA BIONDA
+           case 'ARANCIA ROSSA':
+               id += "AR ";
+               break;
+           case 'ARANCIA BIONDA':
+               id += "AB ";
                break;
            case 'MANDARINO':
                id += "MA ";
@@ -1175,12 +1192,12 @@ $(document).ready(function() {
            case 'LIMONE':
                id += "LE ";
                break;
-           case 'ARANCIA':
-               if (varieta === 'MORO' || varieta === 'SANGUINELLA' || varieta === 'TAROCCO' || varieta === 'ROSSA') {
-                   id += "AR ";
-               } else {
-                   id += "AB ";
-               }
+           // MODIFICATO: Gestisce sia ARANCIA ROSSA che ARANCIA BIONDA
+           case 'ARANCIA ROSSA':
+               id += "AR ";
+               break;
+           case 'ARANCIA BIONDA':
+               id += "AB ";
                break;
            case 'MANDARINO':
                id += "MA ";
@@ -1309,7 +1326,8 @@ $(document).ready(function() {
    function calculateAutoYields(agrume) {
        const yields = {
            'LIMONE': { prima: 33, seconda: 5, torchiato: 6 },
-           'ARANCIA': { prima: 35, seconda: 12, torchiato: 6 },
+           'ARANCIA ROSSA': { prima: 35, seconda: 12, torchiato: 6 },
+           'ARANCIA BIONDA': { prima: 35, seconda: 12, torchiato: 6 },
            'MANDARINO': { prima: 42, seconda: 10, torchiato: 4 },
            'POMPELMO': { prima: 30, seconda: 15, torchiato: 6 },
            'BERGAMOTTO': { prima: 30, seconda: 8, torchiato: 3 }
@@ -1440,7 +1458,7 @@ $(document).ready(function() {
        return html;
    }
 
-   // MODIFICATA: Genera tabella per stampa con destinazioni semplificate, ID per destinazioni e note combinazione
+   // MODIFICATA: Genera tabella per stampa con destinazioni semplificate, ID per destinazioni e note combinazione - CORRETTO I COLORI
    function generatePrintTable() {
        const tbody = $('#print-table-body');
        tbody.empty();
@@ -1564,7 +1582,7 @@ $(document).ready(function() {
        }
    };
 
-   // Crea card fornitore
+   // MODIFICATO: Crea card fornitore senza i campi di default
    function createSupplierCard(index) {
        const agrume = $('#tipo-agrume-giornaliero').val();
        const defaultYield = 30; // Valore di default
@@ -1771,89 +1789,6 @@ $(document).ready(function() {
                                </div>
                            </div>
                        </div>
-                   </div>
-               </div>
-
-               <div class="section-divider"></div>
-
-               <!-- Caratteristiche prodotti compatte -->
-               <div class="form-row">
-                   <span class="form-label">Polpa:</span>
-                   <div class="form-input">
-                       <select class="tenore-polpa-prima" onchange="toggleAltroTenore(${index}, 'prima'); updateProductID(${index});">
-                           <option value="STANDARD">STANDARD</option>
-                           <option value="LIMPIDO">LIMPIDO</option>
-                           <option value="<1%"><1%</option>
-                           <option value="2%">2%</option>
-                           <option value="3%">3%</option>
-                           <option value="6%">6%</option>
-                           <option value="ALTRO">ALTRO</option>
-                       </select>
-                   </div>
-               </div>
-
-               <div class="form-row">
-                   <span class="form-label">°BX:</span>
-                   <div class="form-input">
-                       <select class="brix-prima" onchange="toggleAltroBrix(${index}, 'prima'); updateSupplierConcentrato(${index}); updateProductID(${index});">
-                           <option value="NAT">NAT</option>
-                           <option value="20">20</option>
-                           <option value="32">32</option>
-                           <option value="40">40</option>
-                           <option value="45">45</option>
-                           <option value="48">48</option>                           
-                           <option value="50">50</option>
-                           <option value="55">55</option>
-                           <option value="60">60</option>
-                           <option value="65">65</option>
-                           <option value="ALTRO">ALTRO</option>
-                       </select>
-                   </div>
-               </div>
-
-               <!-- Campo Q. Concentrato del fornitore -->
-               <div class="form-row concentrato-prima-row hidden-field">
-                   <span class="form-label">Q. Concentrato:</span>
-                   <div class="form-input">
-                       <input type="text" class="quantita-concentrato-prima concentrato-field" readonly>
-                   </div>
-               </div>
-
-               <div class="form-row">
-                   <span class="form-label">Bio:</span>
-                   <div class="form-input">
-                       <select class="bio-prima" onchange="updateBioStyles(${index}); updateProductID(${index});">
-                           <option value="SI">SI</option>
-                           <option value="NO">NO</option>
-                           <option value="DECLASSATO">DECLASSATO</option>
-                       </select>
-                   </div>
-               </div>
-
-               <div class="form-row">
-                   <span class="form-label">Pastorizzato:</span>
-                   <div class="form-input">
-                       <select class="pastorizzato-prima" onchange="updateProductID(${index});">
-                           <option value="SI">SI</option>
-                           <option value="NO">NO</option>
-                       </select>
-                   </div>
-               </div>
-
-               <div class="form-row">
-                   <span class="form-label">Conservato:</span>
-                   <div class="form-input">
-                       <select class="conservato-prima" onchange="updateProductID(${index});">
-                           <option value="SI">SI</option>
-                           <option value="NO" selected>NO</option>
-                       </select>
-                   </div>
-               </div>
-
-               <div class="form-row">
-                   <span class="form-label">Note:</span>
-                   <div class="form-input">
-                       <textarea class="note-prima" placeholder="Note Succo 1ª" rows="2"></textarea>
                    </div>
                </div>
 
@@ -2325,18 +2260,6 @@ window.updateBioStyles = function(index) {
            
            // Reset destinazioni
            card.find('.destinazione-prima')[0].selectedIndex = -1;
-           
-           // Reset caratteristiche
-           card.find('.tenore-polpa-prima').val('STANDARD');
-           card.find('.brix-prima').val('NAT');
-           card.find('.bio-prima').val('SI');
-           card.find('.pastorizzato-prima').val('SI');
-           card.find('.conservato-prima').val('NO');
-           card.find('.note-prima').val('');
-           
-           // Reset concentrato
-           card.find('.quantita-concentrato-prima').val('');
-           card.find('.concentrato-prima-row').addClass('hidden-field');
            
            // Reset ID prodotto
            card.find('.product-id').val('');
@@ -2925,19 +2848,6 @@ window.updateBioStyles = function(index) {
                receivedTransfers: receivedTransfers,
                distributionData: distributionData,
                destinationsCharacteristics: destinationsCharacteristics, // NUOVO
-               caratteristicheProdotti: {
-                   prima: {
-                       tenorePolpa: $(this).find('.tenore-polpa-prima').val(),
-                       altroTenore: $(this).find('.altro-tenore-prima').val(),
-                       brix: $(this).find('.brix-prima').val(),
-                       altroBrix: $(this).find('.altro-brix-prima').val(),
-                       bio: $(this).find('.bio-prima').val(),
-                       pastorizzato: $(this).find('.pastorizzato-prima').val(),
-                       conservato: $(this).find('.conservato-prima').val(),
-                       note: $(this).find('.note-prima').val(),
-                       quantitaConcentrato: $(this).find('.quantita-concentrato-prima').val()
-                   }
-               },
                destinazioni: {
                    prima: destinazioniPrima.join(', '),
                    primaAltro: $(this).find('.altra-destinazione').val() || ''
@@ -3096,20 +3006,6 @@ window.updateBioStyles = function(index) {
                
                // ID Prodotto
                card.find('.product-id').val(fornitore.productID || '');
-               
-               // Caratteristiche
-               if (fornitore.caratteristicheProdotti?.prima) {
-                   const prima = fornitore.caratteristicheProdotti.prima;
-                   card.find('.tenore-polpa-prima').val(prima.tenorePolpa || 'STANDARD');
-                   card.find('.altro-tenore-prima').val(prima.altroTenore || '');
-                   card.find('.brix-prima').val(prima.brix || 'NAT');
-                   card.find('.altro-brix-prima').val(prima.altroBrix || '');
-                   card.find('.bio-prima').val(prima.bio || 'SI');
-                   card.find('.pastorizzato-prima').val(prima.pastorizzato || 'SI');
-                   card.find('.conservato-prima').val(prima.conservato || 'NO');
-                   card.find('.note-prima').val(prima.note || '');
-                   card.find('.quantita-concentrato-prima').val(prima.quantitaConcentrato || '');
-               }
                
                // Destinazioni
                if (fornitore.destinazioni?.prima) {
