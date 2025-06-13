@@ -567,7 +567,7 @@ body {
    margin-bottom: 15px;
 }
 
-/* Campo ID */
+/* Campo ID - NASCOSTO NEL PROGRAMMA */
 .id-field {
    background-color: #ffe4b5;
    font-weight: bold;
@@ -575,6 +575,10 @@ body {
    font-family: 'Courier New', monospace;
    font-size: 10px;
    border: 2px solid #ff8c00;
+}
+
+.program-id-row {
+   display: none !important; /* NASCOSTO NEL PROGRAMMA */
 }
 
 /* Sezioni caratteristiche per destinazione */
@@ -969,7 +973,7 @@ body {
                <div class="print-table-cell">FINE</div>
                <div class="print-table-cell">Q. SUCCO 1^</div>
                <div class="print-table-cell">DESTINAZIONI</div>
-               <div class="print-table-cell">ID</div>
+               <div class="print-table-cell">ID DESTINAZIONI</div>
                <div class="print-table-cell">NOTE</div>
            </div>
        </div>
@@ -1053,7 +1057,7 @@ $(document).ready(function() {
        'GOE EST/BIRILLATRICI': 25.60
    };
 
-   // MODIFICATA: Generazione codice ID prodotto - aggiornata per gestire convenzionale
+   // MODIFICATA: Generazione codice ID prodotto - aggiornata per gestire bio status
    function generateProductID(card) {
        let id = "";
        
@@ -1132,10 +1136,114 @@ $(document).ready(function() {
            id += "N ";
        }
        
-       // Certificazione - MODIFICATA per gestire convenzionale
+       // MODIFICATA: Certificazione - considera bio status
        const cert = card.find('.certificazione-prodotto').val();
-       if (cert === 'CONVENZIONALE') {
+       const bioStatus = card.find('.bio-prima').val();
+       
+       // Se bio è NO o DECLASSATO, non aggiungere certificazione
+       if (bioStatus === 'NO' || bioStatus === 'DECLASSATO') {
+           id += "";
+       } else if (cert === 'CONVENZIONALE') {
            // Per convenzionale non aggiungere nulla
+           id += "";
+       } else if (cert === 'ALTRO') {
+           const altraCert = card.find('.altra-certificazione').val();
+           id += " " + (altraCert || "XX").toUpperCase().replace(/\s+/g, '').replace(/\//g, '');
+       } else if (cert) {
+           id += " " + cert.replace(/\s+/g, '').replace(/\//g, '');
+       }
+       
+       return id.trim();
+   }
+
+   // NUOVA: Generazione codice ID per destinazione specifica
+   function generateDestinationID(card, dest) {
+       const charSection = card.find(`.destination-characteristics[data-dest="${dest}"]`);
+       if (charSection.length === 0) return '';
+       
+       let id = "";
+       
+       // Tipo prodotto
+       id += "SU ";
+       
+       // Tipo agrume
+       const agrume = $('#tipo-agrume-giornaliero').val();
+       const varieta = card.find('.varieta-prodotto').val();
+       
+       switch(agrume) {
+           case 'LIMONE':
+               id += "LE ";
+               break;
+           case 'ARANCIA':
+               if (varieta === 'MORO' || varieta === 'SANGUINELLA' || varieta === 'TAROCCO' || varieta === 'ROSSA') {
+                   id += "AR ";
+               } else {
+                   id += "AB ";
+               }
+               break;
+           case 'MANDARINO':
+               id += "MA ";
+               break;
+           case 'BERGAMOTTO':
+               id += "BE ";
+               break;
+           case 'POMPELMO':
+               id += "PO ";
+               break;
+           default:
+               id += "XX ";
+       }
+       
+       // Brix della destinazione
+       const brix = charSection.find('.dest-brix').val();
+       if (brix === 'NAT') {
+           id += "00 ";
+       } else if (brix === 'ALTRO') {
+           const altroBrix = charSection.find('.dest-brix-altro').val();
+           id += (altroBrix || "XX") + " ";
+       } else {
+           id += brix + " ";
+       }
+       
+       // Tenore polpa della destinazione
+       const polpa = charSection.find('.dest-polpa').val();
+       if (polpa === 'STANDARD') {
+           id += "UF ";
+       } else if (polpa === 'ALTRO') {
+           const altroPolpa = charSection.find('.dest-polpa-altro').val();
+           id += (altroPolpa || "XX") + " ";
+       } else {
+           id += polpa + " ";
+       }
+       
+       // Pastorizzazione/Concentrazione della destinazione
+       const pastorizzato = charSection.find('.dest-pastorizzato').val();
+       const isConcentrato = dest === 'CONCENTRATO';
+       
+       if (isConcentrato) {
+           id += "CP ";
+       } else if (pastorizzato === 'SI') {
+           id += "PP ";
+       } else {
+           id += "NA ";
+       }
+       
+       // Conservazione della destinazione
+       const conservato = charSection.find('.dest-conservato').val();
+       if (conservato === 'SI') {
+           id += "C ";
+       } else {
+           id += "N ";
+       }
+       
+       // Certificazione - considera bio status della destinazione
+       const cert = card.find('.certificazione-prodotto').val();
+       const bioStatus = charSection.find('.dest-bio').val();
+       
+       // Se bio è NO o DECLASSATO, non aggiungere certificazione
+       if (bioStatus === 'NO' || bioStatus === 'DECLASSATO') {
+           id += "";
+       } else if (cert === 'CONVENZIONALE') {
            id += "";
        } else if (cert === 'ALTRO') {
            const altraCert = card.find('.altra-certificazione').val();
@@ -1312,7 +1420,7 @@ $(document).ready(function() {
        return html;
    }
 
-   // NUOVA FUNZIONE: Genera tabella per stampa con destinazioni estese
+   // MODIFICATA: Genera tabella per stampa con destinazioni semplificate e ID per destinazioni
    function generatePrintTable() {
        const tbody = $('#print-table-body');
        tbody.empty();
@@ -1336,28 +1444,28 @@ $(document).ready(function() {
            const inizio = card.find('.orario-inizio').val() || '';
            const fine = card.find('.orario-fine-display').text().replace(/<[^>]*>/g, '') || '';
            const quantitaPrima = card.find('.quantita-prima').val() || '0';
-           const productID = card.find('.product-id').val() || '';
            const note = card.find('.note-prima').val() || '';
            
-           // NUOVA: Raccogli destinazioni e caratteristiche
+           // MODIFICATA: Raccogli solo destinazioni e quantità
            let destinationsInfo = '';
+           let destinationIDs = '';
            const selectedDestinations = Array.from(card.find('.destinazione-prima')[0].selectedOptions).map(option => option.value);
            
            selectedDestinations.forEach((dest, destIndex) => {
                if (destIndex < 3) { // Max 3 destinazioni
                    const qty = card.find(`.distribution-qty[data-dest="${dest}"]`).val() || '0';
-                   const polpa = card.find(`.dest-polpa[data-dest="${dest}"]`).val() || 'STANDARD';
-                   const brix = card.find(`.dest-brix[data-dest="${dest}"]`).val() || 'NAT';
-                   const bio = card.find(`.dest-bio[data-dest="${dest}"]`).val() || 'SI';
-                   const pastorizzato = card.find(`.dest-pastorizzato[data-dest="${dest}"]`).val() || 'SI';
-                   const conservato = card.find(`.dest-conservato[data-dest="${dest}"]`).val() || 'NO';
-                   const noteDestinazione = card.find(`.dest-note[data-dest="${dest}"]`).val() || '';
                    
-                   if (destIndex > 0) destinationsInfo += '<br/>';
-                   destinationsInfo += `<strong>${dest}:</strong> ${qty}kg<br/>`;
-                   destinationsInfo += `Polpa:${polpa} °BX:${brix} Bio:${bio}<br/>`;
-                   destinationsInfo += `Past:${pastorizzato} Cons:${conservato}`;
-                   if (noteDestinazione) destinationsInfo += `<br/>Note:${noteDestinazione}`;
+                   if (destIndex > 0) {
+                       destinationsInfo += '<br/>';
+                       destinationIDs += '<br/>';
+                   }
+                   
+                   // Solo destinazione e quantità
+                   destinationsInfo += `<strong>${dest}:</strong> ${qty}kg`;
+                   
+                   // ID per ogni destinazione
+                   const destID = generateDestinationID(card, dest);
+                   destinationIDs += destID;
                }
            });
            
@@ -1365,7 +1473,7 @@ $(document).ready(function() {
                destinationsInfo = selectedDestinations.join(', ');
            }
            
-           // Determina colore combinazione
+           // MODIFICATA: Determina colore combinazione per l'intera riga
            let rowClass = '';
            if (card.hasClass('combination-verde')) {
                rowClass = 'combination-verde-row';
@@ -1406,7 +1514,7 @@ $(document).ready(function() {
                    <div class="print-table-cell">${fine}</div>
                    <div class="print-table-cell">${quantitaPrima}</div>
                    <div class="print-table-cell destinations-details">${destinationsInfo}</div>
-                   <div class="print-table-cell" style="font-family: 'Courier New', monospace; font-size: 6px;">${productID}</div>
+                   <div class="print-table-cell" style="font-family: 'Courier New', monospace; font-size: 6px;">${destinationIDs}</div>
                    <div class="print-table-cell" style="font-size: 6px;">${note}</div>
                </div>
            `;
@@ -1577,8 +1685,8 @@ $(document).ready(function() {
                    </div>
                </div>
 
-               <!-- Campo ID Prodotto -->
-               <div class="form-row">
+               <!-- Campo ID Prodotto - NASCOSTO NEL PROGRAMMA -->
+               <div class="form-row program-id-row">
                    <span class="form-label">ID Prodotto:</span>
                    <div class="form-input">
                        <input type="text" class="product-id id-field" readonly>
