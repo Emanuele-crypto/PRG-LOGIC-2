@@ -761,7 +761,7 @@ body {
        font-weight: bold !important;
    }
    
-   /* COLORI COMBINAZIONI IN TABELLA */
+   /* COLORI COMBINAZIONI IN TABELLA - CORRETTI */
    .combination-verde-row {
        background-color: #d4edda !important;
    }
@@ -1255,6 +1255,25 @@ $(document).ready(function() {
        return id.trim();
    }
 
+   // NUOVA: Funzione per determinare il colore della combinazione di un fornitore
+   function getSupplierCombinationColor(supplierIndex) {
+       for (const [color, data] of Object.entries(combinationData)) {
+           if (data.indexes.includes(supplierIndex)) {
+               return color;
+           }
+       }
+       return null;
+   }
+
+   // NUOVA: Funzione per calcolare il totale di una combinazione
+   function calculateCombinationTotal(color) {
+       if (!combinationData[color] || !combinationData[color].details) return 0;
+       
+       return combinationData[color].details.reduce((total, detail) => {
+           return total + parseFloat(detail.risultato);
+       }, 0);
+   }
+
    // Funzione per calcolare la quantità concentrato
    function calculateConcentrato(quantita, brix) {
        if (!quantita || !brix || brix === 'NAT') return 0;
@@ -1420,7 +1439,7 @@ $(document).ready(function() {
        return html;
    }
 
-   // MODIFICATA: Genera tabella per stampa con destinazioni semplificate e ID per destinazioni
+   // MODIFICATA: Genera tabella per stampa con destinazioni semplificate, ID per destinazioni e note combinazione
    function generatePrintTable() {
        const tbody = $('#print-table-body');
        tbody.empty();
@@ -1444,7 +1463,7 @@ $(document).ready(function() {
            const inizio = card.find('.orario-inizio').val() || '';
            const fine = card.find('.orario-fine-display').text().replace(/<[^>]*>/g, '') || '';
            const quantitaPrima = card.find('.quantita-prima').val() || '0';
-           const note = card.find('.note-prima').val() || '';
+           let note = card.find('.note-prima').val() || '';
            
            // MODIFICATA: Raccogli solo destinazioni e quantità
            let destinationsInfo = '';
@@ -1473,14 +1492,19 @@ $(document).ready(function() {
                destinationsInfo = selectedDestinations.join(', ');
            }
            
-           // MODIFICATA: Determina colore combinazione per l'intera riga
+           // MODIFICATA: Determina colore combinazione e aggiungi info combinazione alle note
            let rowClass = '';
-           if (card.hasClass('combination-verde')) {
-               rowClass = 'combination-verde-row';
-           } else if (card.hasClass('combination-azzurro')) {
-               rowClass = 'combination-azzurro-row';
-           } else if (card.hasClass('combination-viola')) {
-               rowClass = 'combination-viola-row';
+           const combinationColor = getSupplierCombinationColor(index);
+           
+           if (combinationColor) {
+               rowClass = `combination-${combinationColor}-row`;
+               
+               // Aggiungi totale combinazione alle note
+               const combinationTotal = calculateCombinationTotal(combinationColor);
+               if (combinationTotal > 0) {
+                   const combinationNote = `COMB. ${combinationColor.toUpperCase()}: ${combinationTotal.toFixed(1)}kg`;
+                   note = note ? `${note} - ${combinationNote}` : combinationNote;
+               }
            }
            
            // Determina stile bio
