@@ -1458,53 +1458,126 @@ $(document).ready(function() {
        return html;
    }
 
-   // MODIFICATA: Genera tabella per stampa con destinazioni semplificate, ID per destinazioni e note combinazione - CORRETTO I COLORI
-   function generatePrintTable() {
-       const tbody = $('#print-table-body');
-       tbody.empty();
-       
-       $('.supplier-card').each(function() {
-           const card = $(this);
-           const index = card.data('supplier-index');
-           
-           // Ottieni dati del fornitore
-           const nome = card.find('.nome-fornitore').val();
-           const altroNome = card.find('.altro-fornitore').val();
-           const nomeFornitore = nome === 'ALTRO' ? altroNome : nome;
-           
-           const linea = card.find('.linea-trasformazione').val() || '';
-           const entrata = card.find('.quantita-fornitore').val() || '0';
-           const trasformata = card.find('.quantita-trasformata').val() || '0';
-           const giacenza = card.find('.giacenza-fornitore').val() || '0';
-           const cert = card.find('.certificazione-prodotto').val() || '';
-           const varieta = card.find('.varieta-prodotto').val() || '';
-           const portata = card.find('.portata-impianto').val() || '';
-           const inizio = card.find('.orario-inizio').val() || '';
-           const fine = card.find('.orario-fine-display').text().replace(/<[^>]*>/g, '') || '';
-           const quantitaPrima = card.find('.quantita-prima').val() || '0';
-           let note = card.find('.note-prima').val() || '';
-           
-           // MODIFICATA: Raccogli solo destinazioni e quantità
-           let destinationsInfo = '';
-           let destinationIDs = '';
-           const selectedDestinations = Array.from(card.find('.destinazione-prima')[0].selectedOptions).map(option => option.value);
-           
-           selectedDestinations.forEach((dest, destIndex) => {
-               if (destIndex < 3) { // Max 3 destinazioni
-                   const qty = card.find(`.distribution-qty[data-dest="${dest}"]`).val() || '0';
-                   
-                   if (destIndex > 0) {
-                       destinationsInfo += '<br/>';
-                       destinationIDs += '<br/>';
-                   }
-                   
-                   // Solo destinazione e quantità
-                   destinationsInfo += `<strong>${dest}:</strong> ${qty}kg`;
-                   
-                   // ID per ogni destinazione
-                   const destID = generateDestinationID(card, dest);
-                   destinationIDs += destID;
-               }
+   // MODIFICATA: Genera tabella per stampa con destinazioni semplificate, ID per destinazioni e note combinazione + trasferimenti
+function generatePrintTable() {
+    const tbody = $('#print-table-body');
+    tbody.empty();
+    
+    $('.supplier-card').each(function() {
+        const card = $(this);
+        const index = card.data('supplier-index');
+        
+        // Ottieni dati del fornitore
+        const nome = card.find('.nome-fornitore').val();
+        const altroNome = card.find('.altro-fornitore').val();
+        const nomeFornitore = nome === 'ALTRO' ? altroNome : nome;
+        
+        const linea = card.find('.linea-trasformazione').val() || '';
+        const entrata = card.find('.quantita-fornitore').val() || '0';
+        const trasformata = card.find('.quantita-trasformata').val() || '0';
+        const giacenza = card.find('.giacenza-fornitore').val() || '0';
+        const cert = card.find('.certificazione-prodotto').val() || '';
+        const varieta = card.find('.varieta-prodotto').val() || '';
+        const portata = card.find('.portata-impianto').val() || '';
+        const inizio = card.find('.orario-inizio').val() || '';
+        const fine = card.find('.orario-fine-display').text().replace(/<[^>]*>/g, '') || '';
+        const quantitaPrima = card.find('.quantita-prima').val() || '0';
+        let note = card.find('.note-prima').val() || '';
+        
+        // NUOVO: Aggiungi trasferimenti ricevuti alle note
+        if (transferData[index] && transferData[index].length > 0) {
+            const transferNotes = transferData[index].map(transfer => 
+                `+${transfer.amount}kg da F${transfer.fromSupplier} (${transfer.fromName})`
+            ).join(', ');
+            
+            if (note) {
+                note += ` - TRASFERIMENTI: ${transferNotes}`;
+            } else {
+                note = `TRASFERIMENTI: ${transferNotes}`;
+            }
+        }
+        
+        // MODIFICATA: Raccogli solo destinazioni e quantità
+        let destinationsInfo = '';
+        let destinationIDs = '';
+        const selectedDestinations = Array.from(card.find('.destinazione-prima')[0].selectedOptions).map(option => option.value);
+        
+        selectedDestinations.forEach((dest, destIndex) => {
+            if (destIndex < 3) { // Max 3 destinazioni
+                const qty = card.find(`.distribution-qty[data-dest="${dest}"]`).val() || '0';
+                
+                if (destIndex > 0) {
+                    destinationsInfo += '<br/>';
+                    destinationIDs += '<br/>';
+                }
+                
+                // Solo destinazione e quantità
+                destinationsInfo += `<strong>${dest}:</strong> ${qty}kg`;
+                
+                // ID per ogni destinazione
+                const destID = generateDestinationID(card, dest);
+                destinationIDs += destID;
+            }
+        });
+        
+        if (!destinationsInfo && selectedDestinations.length > 0) {
+            destinationsInfo = selectedDestinations.join(', ');
+        }
+        
+        // MODIFICATA: Determina colore combinazione e aggiungi info combinazione alle note
+        let rowClass = '';
+        const combinationColor = getSupplierCombinationColor(index);
+        
+        if (combinationColor) {
+            rowClass = `combination-${combinationColor}-row`;
+            
+            // Aggiungi totale combinazione alle note
+            const combinationTotal = calculateCombinationTotal(combinationColor);
+            if (combinationTotal > 0) {
+                const combinationNote = `COMB. ${combinationColor.toUpperCase()}: ${combinationTotal.toFixed(1)}kg`;
+                note = note ? `${note} - ${combinationNote}` : combinationNote;
+            }
+        }
+        
+        // Determina stile bio
+        const bioStatus = card.find('.bio-prima').val();
+        const certificazione = card.find('.certificazione-prodotto').val();
+        const isBioSpecific = ['BIO EU', 'BIO DEM', 'BIO NTD', 'BIO DEM/NTD'].includes(certificazione);
+        
+        let certClass = '';
+        let varietaClass = '';
+        if (isBioSpecific) {
+            if (bioStatus === 'SI') {
+                certClass = 'bio-red-cell';
+                varietaClass = 'bio-red-cell';
+            } else if (bioStatus === 'DECLASSATO' || bioStatus === 'NO') {
+                certClass = 'bio-black-cell';
+                varietaClass = 'bio-black-cell';
+            }
+        }
+        
+        const row = `
+            <div class="print-table-row ${rowClass}">
+                <div class="print-table-cell">${linea}</div>
+                <div class="print-table-cell">${nomeFornitore || ''}</div>
+                <div class="print-table-cell">${entrata}</div>
+                <div class="print-table-cell">${trasformata}</div>
+                <div class="print-table-cell">${giacenza}</div>
+                <div class="print-table-cell ${certClass}">${cert}</div>
+                <div class="print-table-cell ${varietaClass}">${varieta}</div>
+                <div class="print-table-cell">${portata}</div>
+                <div class="print-table-cell">${inizio}</div>
+                <div class="print-table-cell">${fine}</div>
+                <div class="print-table-cell">${quantitaPrima}</div>
+                <div class="print-table-cell destinations-details">${destinationsInfo}</div>
+                <div class="print-table-cell" style="font-family: 'Courier New', monospace; font-size: 6px;">${destinationIDs}</div>
+                <div class="print-table-cell" style="font-size: 6px;">${note}</div>
+            </div>
+        `;
+        
+        tbody.append(row);
+    });
+ }
            });
            
            if (!destinationsInfo && selectedDestinations.length > 0) {
