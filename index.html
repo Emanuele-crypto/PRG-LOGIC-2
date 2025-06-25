@@ -1595,7 +1595,7 @@ $(document).ready(function() {
        }
    };
 
-   // MODIFICATO: Crea card fornitore con nuovo campo giacenza
+   // MODIFICATO: Crea card fornitore con giacenza ed entrata come campi modificabili
    function createSupplierCard(index) {
        const agrume = $('#tipo-agrume-giornaliero').val();
        const defaultYield = 30; // Valore di default
@@ -1632,7 +1632,7 @@ $(document).ready(function() {
                    </div>
                </div>
 
-               <!-- NUOVO CAMPO GIACENZA -->
+               <!-- CAMPO GIACENZA MODIFICABILE -->
                <div class="form-row">
                    <span class="form-label">Giacenza (kg):</span>
                    <div class="form-input">
@@ -1640,11 +1640,11 @@ $(document).ready(function() {
                    </div>
                </div>
 
-               <!-- CAMPO ENTRATA MODIFICATO -->
+               <!-- CAMPO ENTRATA MODIFICABILE -->
                <div class="form-row">
                    <span class="form-label">Entrata (kg):</span>
                    <div class="form-input">
-                       <input type="number" class="entrata-fornitore calculated-field" readonly>
+                       <input type="number" class="entrata-fornitore" min="0" onchange="calculateSupplier(${index})">
                    </div>
                </div>
 
@@ -1655,7 +1655,7 @@ $(document).ready(function() {
                    </div>
                </div>
 
-               <!-- CAMPO RIMANENZA (ex giacenza) -->
+               <!-- CAMPO RIMANENZA CALCOLATO -->
                <div class="form-row">
                    <span class="form-label">Rimanenza (kg):</span>
                    <div class="form-input">
@@ -1848,19 +1848,15 @@ $(document).ready(function() {
        updateAllTransferOptions();
    };
 
-   // MODIFICATA: Funzione di calcolo con nuova logica giacenza/entrata/rimanenza
+   // MODIFICATA: Funzione di calcolo con nuova logica: rimanenza = (giacenza + entrata) - trasformata
    window.calculateSupplier = function(index) {
        const card = $(`.supplier-card[data-supplier-index="${index}"]`);
        
-       // NUOVA LOGICA: Calcola entrata totale (giacenza + entrata base)
+       // NUOVA LOGICA: Rimanenza = (Giacenza + Entrata) - Trasformata
        const giacenza = parseFloat(card.find('.giacenza-fornitore').val()) || 0;
-       const entrataBase = parseFloat(card.find('.quantita-fornitore').val()) || 0; // Vecchio campo "entrata"
-       const entraTotale = giacenza + entrataBase;
-       card.find('.entrata-fornitore').val(entraTotale);
-       
-       // NUOVA LOGICA: Calcola rimanenza (entrata totale - trasformata)
+       const entrata = parseFloat(card.find('.entrata-fornitore').val()) || 0;
        const trasformata = parseFloat(card.find('.quantita-trasformata').val()) || 0;
-       const rimanenza = entraTotale - trasformata;
+       const rimanenza = (giacenza + entrata) - trasformata;
        card.find('.rimanenza-fornitore').val(rimanenza >= 0 ? rimanenza : 0);
        
        // Calcola quantità prodotti
@@ -2345,18 +2341,19 @@ window.updateBioStyles = function(index) {
        }
    };
 
-   // MODIFICATA: Aggiorna totali con nuova terminologia
+   // MODIFICATA: Aggiorna totali con nuova terminologia e logica
    function updateTotals() {
        let totaleEntrata = 0;
        let totaleTrasformata = 0;
        let totaleRimanenza = 0;
        
        $('.supplier-card').each(function() {
+           const giacenza = parseFloat($(this).find('.giacenza-fornitore').val()) || 0;
            const entrata = parseFloat($(this).find('.entrata-fornitore').val()) || 0;
            const trasformata = parseFloat($(this).find('.quantita-trasformata').val()) || 0;
            const rimanenza = parseFloat($(this).find('.rimanenza-fornitore').val()) || 0;
            
-           totaleEntrata += entrata;
+           totaleEntrata += (giacenza + entrata);
            totaleTrasformata += trasformata;
            totaleRimanenza += rimanenza;
        });
@@ -2781,14 +2778,14 @@ window.updateBioStyles = function(index) {
        });
    }
 
-   // MODIFICATA: Funzioni di salvataggio e caricamento con caratteristiche destinazioni e nuova struttura
+   // MODIFICATA: Funzioni di salvataggio e caricamento con nuova struttura giacenza/entrata
    function collectProgramData() {
        const data = {
            tipoAgrume: $('#tipo-agrume-giornaliero').val(),
            dataLavorazione: $('#data-lavorazione').val(),
            ultimaRevisione: $('#last-revision').text(),
            transferData: transferData,
-           transferredAmounts: transferredAmounts, // NUOVO
+           transferredAmounts: transferredAmounts,
            combinationData: combinationData,
            fornitori: [],
            totaliSeconda: {
@@ -2855,10 +2852,10 @@ window.updateBioStyles = function(index) {
                supplierIndex: index,
                nome: $(this).find('.nome-fornitore').val(),
                altroNome: $(this).find('.altro-fornitore').val(),
-               giacenzaIniziale: parseFloat($(this).find('.giacenza-fornitore').val()) || 0, // NUOVO
-               quantitaEntrata: parseFloat($(this).find('.entrata-fornitore').val()) || 0, // MODIFICATO
+               giacenza: parseFloat($(this).find('.giacenza-fornitore').val()) || 0, // MODIFICATO
+               entrata: parseFloat($(this).find('.entrata-fornitore').val()) || 0, // MODIFICATO
                quantitaTrasformata: parseFloat($(this).find('.quantita-trasformata').val()) || 0,
-               rimanenza: parseFloat($(this).find('.rimanenza-fornitore').val()) || 0, // NUOVO
+               rimanenza: parseFloat($(this).find('.rimanenza-fornitore').val()) || 0,
                certificazione: $(this).find('.certificazione-prodotto').val(),
                altraCertificazione: $(this).find('.altra-certificazione').val(),
                varieta: $(this).find('.varieta-prodotto').val(),
@@ -3000,7 +2997,7 @@ window.updateBioStyles = function(index) {
        
        // Ripristina transfer e combination data
        transferData = data.transferData || {};
-       transferredAmounts = data.transferredAmounts || {}; // NUOVO
+       transferredAmounts = data.transferredAmounts || {};
        combinationData = data.combinationData || { verde: { indexes: [], details: [] }, azzurro: { indexes: [], details: [] }, viola: { indexes: [], details: [] } };
        
        // Rimuovi fornitori esistenti
@@ -3021,10 +3018,10 @@ window.updateBioStyles = function(index) {
                // Ripristina dati fornitore con nuova struttura
                card.find('.nome-fornitore').val(fornitore.nome || '');
                card.find('.altro-fornitore').val(fornitore.altroNome || '');
-               card.find('.giacenza-fornitore').val(fornitore.giacenzaIniziale || ''); // NUOVO
-               card.find('.entrata-fornitore').val(fornitore.quantitaEntrata || ''); // MODIFICATO
+               card.find('.giacenza-fornitore').val(fornitore.giacenza || '');
+               card.find('.entrata-fornitore').val(fornitore.entrata || '');
                card.find('.quantita-trasformata').val(fornitore.quantitaTrasformata || '');
-               card.find('.rimanenza-fornitore').val(fornitore.rimanenza || ''); // NUOVO
+               card.find('.rimanenza-fornitore').val(fornitore.rimanenza || '');
                card.find('.certificazione-prodotto').val(fornitore.certificazione || '');
                card.find('.altra-certificazione').val(fornitore.altraCertificazione || '');
                card.find('.varieta-prodotto').val(fornitore.varieta || '');
@@ -3294,7 +3291,7 @@ window.updateBioStyles = function(index) {
    initCurrentDate();
    updateSuppliersCount();
 
-   console.log('Sistema Programma Giornaliero Trasformazione inizializzato - Versione con nuova gestione giacenza/rimanenza e trasferimenti ottimizzati');
+   console.log('Sistema Programma Giornaliero Trasformazione inizializzato - Versione corretta con giacenza ed entrata modificabili e rimanenza = (giacenza + entrata) - trasformata');
 });
 </script>
 </body>
