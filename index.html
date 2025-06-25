@@ -55,9 +55,9 @@ body {
    display: flex;
    justify-content: space-around;
    margin-top: 10px;
-   font-size: 20px; /* AUMENTATO da 17px a 20px */
+   font-size: 20px;
    color: #ffffff;
-   font-weight: bold; /* AGGIUNTO per maggiore evidenza */
+   font-weight: bold;
 }
 
 .controls-section {
@@ -182,7 +182,6 @@ body {
    color: #000000;
 }
 
-/* 5 colonne fornitori su una riga per stampa più leggibile */
 .suppliers-container {
    display: grid;
    grid-template-columns: repeat(5, 1fr);
@@ -196,10 +195,9 @@ body {
    border-radius: 5px;
    padding: 12px;
    page-break-inside: avoid;
-   min-height: 450px; /* AUMENTATO per campo giacenza aggiuntivo */
+   min-height: 450px;
 }
 
-/* COLORI COMBINAZIONI */
 .supplier-card.combination-verde {
    background-color: #d4edda;
    border: 2px solid #28a745;
@@ -213,6 +211,12 @@ body {
 .supplier-card.combination-viola {
    background-color: #e2e3f3;
    border: 2px solid #6f42c1;
+}
+
+/* NUOVO: Stile per trasferimenti */
+.supplier-card.transfer-target {
+   background-color: #fff3cd;
+   border: 2px solid #ffc107;
 }
 
 .supplier-header {
@@ -236,6 +240,12 @@ body {
 
 .supplier-header.combination-viola {
    background: #6f42c1;
+}
+
+/* NUOVO: Header per trasferimenti */
+.supplier-header.transfer-target {
+   background: #ffc107;
+   color: #000000;
 }
 
 .form-row {
@@ -322,9 +332,12 @@ body {
    font-weight: bold;
 }
 
-.received-transfer {
-   background-color: #d4edda !important;
-   border: 2px solid #28a745 !important;
+/* MODIFICATO: Stile per trasferimenti */
+.transfer-result {
+   background-color: #fff3cd !important;
+   border: 2px solid #ffc107 !important;
+   font-weight: bold;
+   color: #856404 !important;
 }
 
 .section-divider {
@@ -332,7 +345,6 @@ body {
    margin: 6px 0;
 }
 
-/* Sezioni totali compatte con giallo uguale alle altre caselle gialle */
 .summary-section {
    display: flex;
    gap: 15px;
@@ -421,6 +433,18 @@ body {
 }
 
 .combination-details {
+   font-size: 10px;
+   color: #856404;
+   margin-top: 3px;
+   background-color: #fff3cd;
+   padding: 4px;
+   border-radius: 3px;
+   border: 1px solid #ffc107;
+   line-height: 1.2;
+}
+
+/* NUOVO: Stile per dettagli trasferimenti */
+.transfer-composition-details {
    font-size: 10px;
    color: #856404;
    margin-top: 3px;
@@ -568,7 +592,6 @@ body {
    margin-bottom: 15px;
 }
 
-/* Campo ID - NASCOSTO NEL PROGRAMMA */
 .id-field {
    background-color: #ffe4b5;
    font-weight: bold;
@@ -579,10 +602,9 @@ body {
 }
 
 .program-id-row {
-   display: none !important; /* NASCOSTO NEL PROGRAMMA */
+   display: none !important;
 }
 
-/* Sezioni caratteristiche per destinazione */
 .destination-characteristics {
    background-color: #f0f8ff;
    border: 1px solid #007bff;
@@ -635,7 +657,6 @@ body {
    resize: vertical;
 }
 
-/* REGOLE DI STAMPA CON LAYOUT TABELLA ESTESA */
 @media print {
    body { 
        margin: 8mm !important;
@@ -679,7 +700,7 @@ body {
    }
    
    .header-info {
-       font-size: 14px !important; /* AUMENTATO anche per stampa */
+       font-size: 14px !important;
        color: #ffffff !important;
    }
    
@@ -701,12 +722,10 @@ body {
        color: #000000 !important;
    }
    
-   /* NASCONDE LE CARD E MOSTRA LA TABELLA */
    .suppliers-container {
        display: none !important;
    }
    
-   /* TABELLA DI STAMPA ESTESA */
    .print-table {
        display: table !important;
        width: 100% !important;
@@ -751,7 +770,6 @@ body {
        font-size: 7px !important;
    }
    
-   /* COLORI BIO IN TABELLA */
    .bio-red-cell {
        color: #dc3545 !important;
        font-weight: bold !important;
@@ -762,7 +780,6 @@ body {
        font-weight: bold !important;
    }
    
-   /* COLORI COMBINAZIONI IN TABELLA - CORRETTI */
    .combination-verde-row {
        background-color: #d4edda !important;
    }
@@ -785,6 +802,15 @@ body {
    
    .combination-viola-row .print-table-cell {
        background-color: #e2e3f3 !important;
+   }
+   
+   /* NUOVO: Stile stampa per trasferimenti */
+   .transfer-target-row {
+       background-color: #fff3cd !important;
+   }
+   
+   .transfer-target-row .print-table-cell {
+       background-color: #fff3cd !important;
    }
    
    .summary-section {
@@ -1017,13 +1043,11 @@ $(document).ready(function() {
        viola: { indexes: [], details: [] }
    };
 
-   // Variabili per gestione trasferimenti
+   // MODIFICATA: Variabili per gestione trasferimenti
    let transferData = {};
-   
-   // NUOVO: Traccia quantità trasferite da ogni fornitore
-   let transferredAmounts = {};
+   let transferCompositionData = {}; // NUOVO: Per tracciare la composizione dei trasferimenti
 
-   // MODIFICATO: Definizione varietà per ogni tipo di agrume
+   // Definizione varietà per ogni tipo di agrume
    const varietyOptions = {
        'LIMONE': [
            { value: 'VERDELLO', text: 'Verdello' },
@@ -1177,7 +1201,7 @@ $(document).ready(function() {
        return id.trim();
    }
 
-   // NUOVA: Generazione codice ID per destinazione specifica
+   // Generazione codice ID per destinazione specifica
    function generateDestinationID(card, dest) {
        const charSection = card.find(`.destination-characteristics[data-dest="${dest}"]`);
        if (charSection.length === 0) return '';
@@ -1283,6 +1307,11 @@ $(document).ready(function() {
            }
        }
        return null;
+   }
+
+   // NUOVO: Funzione per determinare se un fornitore è destinatario di trasferimenti
+   function getSupplierTransferStatus(supplierIndex) {
+       return transferCompositionData[supplierIndex] ? 'transfer-target' : null;
    }
 
    // NUOVA: Funzione per calcolare il totale di una combinazione
@@ -1460,7 +1489,7 @@ $(document).ready(function() {
        return html;
    }
 
-   // MODIFICATA: Genera tabella per stampa con nuova struttura giacenza/rimanenza
+   // MODIFICATA: Genera tabella per stampa con gestione trasferimenti
    function generatePrintTable() {
        const tbody = $('#print-table-body');
        tbody.empty();
@@ -1487,7 +1516,7 @@ $(document).ready(function() {
            const quantitaPrima = card.find('.quantita-prima').val() || '0';
            let note = '';
            
-           // MODIFICATA: Raccogli solo destinazioni e quantità
+           // Raccogli solo destinazioni e quantità
            let destinationsInfo = '';
            let destinationIDs = '';
            const selectedDestinations = Array.from(card.find('.destinazione-prima')[0].selectedOptions).map(option => option.value);
@@ -1514,9 +1543,10 @@ $(document).ready(function() {
                destinationsInfo = selectedDestinations.join(', ');
            }
            
-           // MODIFICATA: Determina colore combinazione e aggiungi info combinazione alle note
+           // Determina colore combinazione e tipo
            let rowClass = '';
            const combinationColor = getSupplierCombinationColor(index);
+           const transferStatus = getSupplierTransferStatus(index);
            
            if (combinationColor) {
                rowClass = `combination-${combinationColor}-row`;
@@ -1527,15 +1557,19 @@ $(document).ready(function() {
                    const combinationNote = `COMB. ${combinationColor.toUpperCase()}: ${combinationTotal.toFixed(1)}kg`;
                    note = note ? `${note} - ${combinationNote}` : combinationNote;
                }
-           }
-           
-           // NUOVO: Aggiungi informazioni sui trasferimenti ricevuti nelle note
-           if (transferData[index] && transferData[index].length > 0) {
-               const transferNotes = transferData[index].map(transfer => 
-                   `+${transfer.amount}kg da F${transfer.fromSupplier} (${transfer.fromName})`
-               ).join(', ');
+           } else if (transferStatus) {
+               rowClass = 'transfer-target-row';
                
-               note = note ? `${note} - ${transferNotes}` : transferNotes;
+               // MODIFICATA: Aggiungi dettagli composizione trasferimenti nelle note
+               if (transferCompositionData[index]) {
+                   const compositionDetails = transferCompositionData[index].details.map(detail => 
+                       `Di cui Lt ${detail.amount} da F${detail.fromSupplier} (${detail.fromName})`
+                   ).join(', ');
+                   
+                   const totalTransfer = transferCompositionData[index].total.toFixed(1);
+                   const transferNote = `TRASF.: ${compositionDetails} - Totale: ${totalTransfer}kg`;
+                   note = note ? `${note} - ${transferNote}` : transferNote;
+               }
            }
            
            // Determina stile bio
@@ -1751,6 +1785,7 @@ $(document).ready(function() {
                        <input type="number" class="quantita-prima yield-result" readonly onchange="updateSupplierConcentrato(${index})">
                        <div class="transfer-details hidden-field"></div>
                        <div class="combination-details hidden-field"></div>
+                       <div class="transfer-composition-details hidden-field"></div>
                    </div>
                </div>
 
@@ -1863,10 +1898,11 @@ $(document).ready(function() {
        const resaPrima = parseFloat(card.find('.resa-prima').val()) || 0;
        const quantitaPrimaField = card.find('.quantita-prima');
        
-       if (trasformata > 0 && !quantitaPrimaField.hasClass('combination-result')) {
+       // MODIFICATA: Non aggiornare se è un risultato di combinazione o trasferimento
+       if (trasformata > 0 && !quantitaPrimaField.hasClass('combination-result') && !quantitaPrimaField.hasClass('transfer-result')) {
            const quantitaPrima = (trasformata * resaPrima / 100).toFixed(1);
            quantitaPrimaField.val(quantitaPrima);
-       } else if (trasformata === 0 && !quantitaPrimaField.hasClass('combination-result')) {
+       } else if (trasformata === 0 && !quantitaPrimaField.hasClass('combination-result') && !quantitaPrimaField.hasClass('transfer-result')) {
            quantitaPrimaField.val('');
        }
        
@@ -2087,7 +2123,7 @@ window.updateBioStyles = function(index) {
        }
    };
 
-   // MODIFICATA: Aggiorna totale distribuzione considerando quantità disponibile dopo trasferimenti
+   // MODIFICATA: Aggiorna totale distribuzione
    window.updateDistributionTotal = function(index) {
        const card = $(`.supplier-card[data-supplier-index="${index}"]`);
        let distributedTotal = 0;
@@ -2097,10 +2133,9 @@ window.updateBioStyles = function(index) {
            distributedTotal += value;
        });
        
-       const quantitaPrima = parseFloat(card.find('.quantita-prima').val()) || 0;
-       const quantitaTrasferita = transferredAmounts[index] || 0;
-       const quantitaDisponibile = quantitaPrima - quantitaTrasferita;
-       const remaining = quantitaDisponibile - distributedTotal;
+       // MODIFICATA: Usa la quantità base (senza considerare trasferimenti) per il calcolo
+       const quantitaPrimaBase = parseFloat(card.find('.quantita-prima').val()) || 0;
+       const remaining = quantitaPrimaBase - distributedTotal;
        
        card.find('.remaining-value').text(remaining.toFixed(1));
        
@@ -2151,7 +2186,7 @@ window.updateBioStyles = function(index) {
        });
    }
 
-   // MODIFICATA: Esegui trasferimento sottraendo dalla quantità disponibile
+   // MODIFICATA: Esegui trasferimento senza modificare il campo quantità del destinatario
    window.executeTransfer = function(sourceIndex) {
        const sourceCard = $(`.supplier-card[data-supplier-index="${sourceIndex}"]`);
        const targetIndex = sourceCard.find('.transfer-destination').val();
@@ -2186,21 +2221,59 @@ window.updateBioStyles = function(index) {
            return;
        }
        
-       // MODIFICATO: Aggiorna quantità del fornitore di destinazione
-       const currentTargetQty = parseFloat(targetCard.find('.quantita-prima').val()) || 0;
-       const newTargetQty = currentTargetQty + transferAmount;
-       targetCard.find('.quantita-prima').val(newTargetQty.toFixed(1)).addClass('received-transfer');
+       // MODIFICATA: Non modificare il campo quantità del destinatario, ma creare composizione
+       const targetQuantitaPrimaField = targetCard.find('.quantita-prima');
        
-       // NUOVO: Traccia quantità trasferita dal fornitore sorgente
-       if (!transferredAmounts[sourceIndex]) {
-           transferredAmounts[sourceIndex] = 0;
+       // Inizializza la composizione del trasferimento se non esiste
+       if (!transferCompositionData[targetIndex]) {
+           transferCompositionData[targetIndex] = {
+               baseAmount: parseFloat(targetQuantitaPrimaField.val()) || 0,
+               details: [],
+               total: 0
+           };
        }
-       transferredAmounts[sourceIndex] += transferAmount;
        
-       // Aggiorna dettagli trasferimento
-       updateTransferDetails(targetCard, sourceIndex, sourceName, transferAmount);
+       // Aggiungi il nuovo trasferimento alla composizione
+       transferCompositionData[targetIndex].details.push({
+           fromSupplier: sourceIndex,
+           fromName: sourceName,
+           amount: transferAmount
+       });
        
-       // Salva trasferimento
+       // Calcola il nuovo totale
+       const baseAmount = transferCompositionData[targetIndex].baseAmount;
+       const transfersTotal = transferCompositionData[targetIndex].details.reduce((sum, detail) => 
+           sum + parseFloat(detail.amount), 0);
+       const newTotal = baseAmount + transfersTotal;
+       
+       transferCompositionData[targetIndex].total = newTotal;
+       
+       // MODIFICATA: Imposta il nuovo totale nel campo quantità
+       targetQuantitaPrimaField.val(newTotal.toFixed(1));
+       targetQuantitaPrimaField.addClass('transfer-result');
+       
+       // Applica stili di trasferimento al fornitore destinatario
+       targetCard.addClass('transfer-target');
+       targetCard.find('.supplier-header').addClass('transfer-target');
+       
+       // Aggiorna header con simbolo trasferimento
+       const currentHeader = targetCard.find('.supplier-header').text();
+       if (!currentHeader.includes('(T)')) {
+           targetCard.find('.supplier-header').html(currentHeader + ' (T)');
+       }
+       
+       // MODIFICATA: Crea dettagli composizione da mostrare sotto il campo
+       const compositionText = transferCompositionData[targetIndex].details.map(detail => 
+           `F${detail.fromSupplier}= ${detail.amount}kg`
+       ).join(' + ');
+       const totalText = `Base ${baseAmount}kg + Trasf. ${transfersTotal.toFixed(1)}kg = Tot. ${newTotal.toFixed(1)}kg`;
+       
+       // Mostra i dettagli sotto il campo succo 1ª
+       const compositionDetailsContainer = targetCard.find('.transfer-composition-details');
+       compositionDetailsContainer.removeClass('hidden-field');
+       compositionDetailsContainer.html(`<strong>Composizione Trasferimenti:</strong><br/>${compositionText}<br/><strong>${totalText}</strong>`);
+       
+       // Salva trasferimento nei dati globali (per compatibilità)
        if (!transferData[targetIndex]) {
            transferData[targetIndex] = [];
        }
@@ -2219,7 +2292,7 @@ window.updateBioStyles = function(index) {
        updateDistributionTotal(sourceIndex);
        updateSupplierConcentrato(targetIndex);
        
-       alert(`Trasferimento completato!\n${transferAmount} kg trasferiti da F${sourceIndex} (${sourceName}) a F${targetIndex} (${targetName})\nNuova quantità F${targetIndex}: ${newTargetQty.toFixed(1)} kg`);
+       alert(`Trasferimento completato!\n${transferAmount} kg trasferiti da F${sourceIndex} (${sourceName}) a F${targetIndex} (${targetName})\nNuova quantità totale F${targetIndex}: ${newTotal.toFixed(1)} kg\nDi cui base: ${baseAmount}kg + trasferimenti: ${transfersTotal.toFixed(1)}kg`);
    };
 
    function getSupplierDisplayName(card) {
@@ -2228,29 +2301,15 @@ window.updateBioStyles = function(index) {
        return nome === 'ALTRO' ? altroNome : nome;
    }
 
-   function updateTransferDetails(targetCard, sourceIndex, sourceName, amount) {
-       const detailsContainer = targetCard.find('.transfer-details');
-       detailsContainer.removeClass('hidden-field');
-       
-       let currentDetails = detailsContainer.html();
-       const newDetail = `<div><strong>+${amount} kg</strong> da F${sourceIndex} (${sourceName})</div>`;
-       
-       if (currentDetails) {
-           detailsContainer.html(currentDetails + newDetail);
-       } else {
-           detailsContainer.html('<strong>Trasferimenti:</strong>' + newDetail);
-       }
-   }
-
    // Reset fornitore con ripristino colore grigio
    window.resetSupplier = function(index) {
        if (confirm('Sei sicuro di voler resettare tutti i campi di questo fornitore?')) {
            const card = $(`.supplier-card[data-supplier-index="${index}"]`);
            const defaultYield = 30;
            
-           // Reset colori combinazione
-           card.removeClass('combination-verde combination-azzurro combination-viola');
-           card.find('.supplier-header').removeClass('combination-verde combination-azzurro combination-viola');
+           // Reset colori combinazione e trasferimenti
+           card.removeClass('combination-verde combination-azzurro combination-viola transfer-target');
+           card.find('.supplier-header').removeClass('combination-verde combination-azzurro combination-viola transfer-target');
            
            // Rimuovi riferimenti dalle combinazioni
            ['verde', 'azzurro', 'viola'].forEach(color => {
@@ -2260,6 +2319,9 @@ window.updateBioStyles = function(index) {
                    combinationData[color].details = combinationData[color].details.filter(d => d.supplierIndex !== index);
                }
            });
+           
+           // Reset dati trasferimenti
+           delete transferCompositionData[index];
            
            // Reset tutti i campi
            card.find('.nome-fornitore').val('');
@@ -2281,7 +2343,7 @@ window.updateBioStyles = function(index) {
            card.find('.resa-prima').val(defaultYield);
            
            // Reset quantità prodotti
-           card.find('.quantita-prima').val('').removeClass('combination-result received-transfer');
+           card.find('.quantita-prima').val('').removeClass('combination-result transfer-result');
            
            // Reset destinazioni
            card.find('.destinazione-prima')[0].selectedIndex = -1;
@@ -2293,13 +2355,13 @@ window.updateBioStyles = function(index) {
            card.find('.distribution-section').addClass('hidden-field');
            card.find('.transfer-details').addClass('hidden-field').html('');
            card.find('.combination-details').addClass('hidden-field').html('');
+           card.find('.transfer-composition-details').addClass('hidden-field').html('');
            
            // Reset nome header
            card.find('.supplier-name').text('Nuovo Fornitore');
            
            // Rimuovi dati trasferimenti
            delete transferData[index];
-           delete transferredAmounts[index];
            
            updateBioStyles(index);
            updateTotals();
@@ -2325,7 +2387,7 @@ window.updateBioStyles = function(index) {
            
            // Rimuovi dati trasferimenti
            delete transferData[index];
-           delete transferredAmounts[index];
+           delete transferCompositionData[index];
            Object.keys(transferData).forEach(key => {
                transferData[key] = transferData[key].filter(transfer => 
                    transfer.fromSupplier !== index
@@ -2778,14 +2840,14 @@ window.updateBioStyles = function(index) {
        });
    }
 
-   // MODIFICATA: Funzioni di salvataggio e caricamento con nuova struttura giacenza/entrata
+   // MODIFICATA: Funzioni di salvataggio e caricamento con gestione trasferimenti
    function collectProgramData() {
        const data = {
            tipoAgrume: $('#tipo-agrume-giornaliero').val(),
            dataLavorazione: $('#data-lavorazione').val(),
            ultimaRevisione: $('#last-revision').text(),
            transferData: transferData,
-           transferredAmounts: transferredAmounts,
+           transferCompositionData: transferCompositionData, // NUOVO
            combinationData: combinationData,
            fornitori: [],
            totaliSeconda: {
@@ -2820,7 +2882,7 @@ window.updateBioStyles = function(index) {
                }
            });
            
-           // NUOVO: Raccogli caratteristiche per ogni destinazione
+           // Raccogli caratteristiche per ogni destinazione
            const destinationsCharacteristics = {};
            destinazioniPrima.forEach(dest => {
                const charSection = $(this).find(`.destination-characteristics[data-dest="${dest}"]`);
@@ -2848,12 +2910,15 @@ window.updateBioStyles = function(index) {
                }
            });
            
+           // Determina se è destinatario di trasferimenti
+           const hasTransferComposition = transferCompositionData[index] ? true : false;
+           
            const fornitore = {
                supplierIndex: index,
                nome: $(this).find('.nome-fornitore').val(),
                altroNome: $(this).find('.altro-fornitore').val(),
-               giacenza: parseFloat($(this).find('.giacenza-fornitore').val()) || 0, // MODIFICATO
-               entrata: parseFloat($(this).find('.entrata-fornitore').val()) || 0, // MODIFICATO
+               giacenza: parseFloat($(this).find('.giacenza-fornitore').val()) || 0,
+               entrata: parseFloat($(this).find('.entrata-fornitore').val()) || 0,
                quantitaTrasformata: parseFloat($(this).find('.quantita-trasformata').val()) || 0,
                rimanenza: parseFloat($(this).find('.rimanenza-fornitore').val()) || 0,
                certificazione: $(this).find('.certificazione-prodotto').val(),
@@ -2875,7 +2940,9 @@ window.updateBioStyles = function(index) {
                combinationType: $(this).find('.quantita-prima').attr('data-combination-type') || '',
                combinationColor: combinationColor,
                combinationDetails: $(this).find('.combination-details').html() || '',
-               hasReceivedTransfers: $(this).find('.quantita-prima').hasClass('received-transfer'),
+               hasTransferResult: $(this).find('.quantita-prima').hasClass('transfer-result'),
+               hasTransferComposition: hasTransferComposition,
+               transferCompositionDetails: $(this).find('.transfer-composition-details').html() || '',
                receivedTransfers: receivedTransfers,
                distributionData: distributionData,
                destinationsCharacteristics: destinationsCharacteristics,
@@ -2957,7 +3024,7 @@ window.updateBioStyles = function(index) {
        showSaveStatus(`File ${filename} salvato nella cartella Download!`, 'success');
    }
 
-   // NUOVO: Caricamento file
+   // Caricamento file
    function loadFromFile() {
        $('#file-input').click();
    }
@@ -2988,7 +3055,7 @@ window.updateBioStyles = function(index) {
        $(this).val('');
    });
 
-   // MODIFICATA: Caricamento dati con nuova struttura giacenza/entrata/rimanenza
+   // MODIFICATA: Caricamento dati con gestione trasferimenti
    function loadDataFromObject(data) {
        // Ripristina dati base
        $('#tipo-agrume-giornaliero').val(data.tipoAgrume || '');
@@ -2997,7 +3064,7 @@ window.updateBioStyles = function(index) {
        
        // Ripristina transfer e combination data
        transferData = data.transferData || {};
-       transferredAmounts = data.transferredAmounts || {};
+       transferCompositionData = data.transferCompositionData || {}; // NUOVO
        combinationData = data.combinationData || { verde: { indexes: [], details: [] }, azzurro: { indexes: [], details: [] }, viola: { indexes: [], details: [] } };
        
        // Rimuovi fornitori esistenti
@@ -3015,7 +3082,7 @@ window.updateBioStyles = function(index) {
                
                const card = $(`.supplier-card[data-supplier-index="${index}"]`);
                
-               // Ripristina dati fornitore con nuova struttura
+               // Ripristina dati fornitore
                card.find('.nome-fornitore').val(fornitore.nome || '');
                card.find('.altro-fornitore').val(fornitore.altroNome || '');
                card.find('.giacenza-fornitore').val(fornitore.giacenza || '');
@@ -3079,7 +3146,7 @@ window.updateBioStyles = function(index) {
                updateDistributionSection(index);
                updateSupplierConcentrato(index);
                
-               // NUOVO: Ripristina caratteristiche destinazioni
+               // Ripristina caratteristiche destinazioni
                if (fornitore.destinationsCharacteristics) {
                    Object.entries(fornitore.destinationsCharacteristics).forEach(([dest, chars]) => {
                        const charSection = card.find(`.destination-characteristics[data-dest="${dest}"]`);
@@ -3133,18 +3200,20 @@ window.updateBioStyles = function(index) {
                    }
                }
                
-               // Gestisci trasferimenti ricevuti
-               if (fornitore.hasReceivedTransfers) {
-                   card.find('.quantita-prima').addClass('received-transfer');
+               // NUOVO: Gestisci trasferimenti ricevuti
+               if (fornitore.hasTransferResult || fornitore.hasTransferComposition) {
+                   card.find('.quantita-prima').addClass('transfer-result');
+                   card.addClass('transfer-target');
+                   card.find('.supplier-header').addClass('transfer-target');
                    
-                   if (fornitore.receivedTransfers && fornitore.receivedTransfers.length > 0) {
-                       const detailsContainer = card.find('.transfer-details');
-                       detailsContainer.removeClass('hidden-field');
-                       
-                       const transferItems = fornitore.receivedTransfers
-                           .map(transfer => `<div><strong>+${transfer.amount} kg</strong> da F${transfer.fromSupplier} (${transfer.fromName})</div>`)
-                           .join('');
-                       detailsContainer.html('<strong>Trasferimenti:</strong>' + transferItems);
+                   const currentHeader = card.find('.supplier-header').text();
+                   if (!currentHeader.includes('(T)')) {
+                       card.find('.supplier-header').html(currentHeader + ' (T)');
+                   }
+                   
+                   // Ripristina dettagli composizione trasferimenti
+                   if (fornitore.transferCompositionDetails) {
+                       card.find('.transfer-composition-details').removeClass('hidden-field').html(fornitore.transferCompositionDetails);
                    }
                }
            });
@@ -3291,7 +3360,7 @@ window.updateBioStyles = function(index) {
    initCurrentDate();
    updateSuppliersCount();
 
-   console.log('Sistema Programma Giornaliero Trasformazione inizializzato - Versione corretta con giacenza ed entrata modificabili e rimanenza = (giacenza + entrata) - trasformata');
+   console.log('Sistema Programma Giornaliero Trasformazione inizializzato - Versione con trasferimenti migliorati che mantengono il campo quantità invariato e mostrano la composizione');
 });
 </script>
 </body>
