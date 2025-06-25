@@ -55,8 +55,9 @@ body {
    display: flex;
    justify-content: space-around;
    margin-top: 10px;
-   font-size: 17px;
+   font-size: 20px; /* AUMENTATO da 17px a 20px */
    color: #ffffff;
+   font-weight: bold; /* AGGIUNTO per maggiore evidenza */
 }
 
 .controls-section {
@@ -910,8 +911,8 @@ body {
            <div class="total-label">Kg Trasformati</div>
        </div>
        <div class="total-item">
-           <div class="total-value" id="giacenza-totale-display">0</div>
-           <div class="total-label">Kg Giacenza</div>
+           <div class="total-value" id="rimanenza-totale-display">0</div>
+           <div class="total-label">Kg Rimanenza</div>
        </div>
    </div>
 
@@ -976,9 +977,10 @@ body {
            <div class="print-table-row">
                <div class="print-table-cell">LINEA</div>
                <div class="print-table-cell">FORNITORE</div>
+               <div class="print-table-cell">GIACENZA</div>
                <div class="print-table-cell">ENTRATA</div>
                <div class="print-table-cell">TRASFORMATA</div>
-               <div class="print-table-cell">GIACENZA</div>
+               <div class="print-table-cell">RIMANENZA</div>
                <div class="print-table-cell">CERT.</div>
                <div class="print-table-cell">VARIETA'</div>
                <div class="print-table-cell">PORTATA</div>
@@ -1473,9 +1475,10 @@ $(document).ready(function() {
            const nomeFornitore = nome === 'ALTRO' ? altroNome : nome;
            
            const linea = card.find('.linea-trasformazione').val() || '';
+           const giacenza = card.find('.giacenza-iniziale').val() || '0'; // NUOVO CAMPO
            const entrata = card.find('.quantita-fornitore').val() || '0';
            const trasformata = card.find('.quantita-trasformata').val() || '0';
-           const giacenza = card.find('.giacenza-fornitore').val() || '0';
+           const rimanenza = card.find('.rimanenza-fornitore').val() || '0'; // MODIFICATO
            const cert = card.find('.certificazione-prodotto').val() || '';
            const varieta = card.find('.varieta-prodotto').val() || '';
            const portata = card.find('.portata-impianto').val() || '';
@@ -1556,9 +1559,10 @@ $(document).ready(function() {
                <div class="print-table-row ${rowClass}">
                    <div class="print-table-cell">${linea}</div>
                    <div class="print-table-cell">${nomeFornitore || ''}</div>
+                   <div class="print-table-cell">${giacenza}</div>
                    <div class="print-table-cell">${entrata}</div>
                    <div class="print-table-cell">${trasformata}</div>
-                   <div class="print-table-cell">${giacenza}</div>
+                   <div class="print-table-cell">${rimanenza}</div>
                    <div class="print-table-cell ${certClass}">${cert}</div>
                    <div class="print-table-cell ${varietaClass}">${varieta}</div>
                    <div class="print-table-cell">${portata}</div>
@@ -1591,7 +1595,7 @@ $(document).ready(function() {
        }
    };
 
-   // MODIFICATO: Crea card fornitore senza i campi di default
+   // MODIFICATO: Crea card fornitore con nuovo campo giacenza sopra entrata
    function createSupplierCard(index) {
        const agrume = $('#tipo-agrume-giornaliero').val();
        const defaultYield = 30; // Valore di default
@@ -1628,6 +1632,14 @@ $(document).ready(function() {
                    </div>
                </div>
 
+               <!-- NUOVO: Campo Giacenza sopra Entrata -->
+               <div class="form-row">
+                   <span class="form-label">Giacenza (kg):</span>
+                   <div class="form-input">
+                       <input type="number" class="giacenza-iniziale" min="0" onchange="calculateSupplier(${index})" placeholder="0">
+                   </div>
+               </div>
+
                <div class="form-row">
                    <span class="form-label">Entrata (kg):</span>
                    <div class="form-input">
@@ -1642,10 +1654,11 @@ $(document).ready(function() {
                    </div>
                </div>
 
+               <!-- MODIFICATO: Rimanenza al posto di Giacenza -->
                <div class="form-row">
-                   <span class="form-label">Giacenza (kg):</span>
+                   <span class="form-label">Rimanenza (kg):</span>
                    <div class="form-input">
-                       <input type="number" class="giacenza-fornitore calculated-field" readonly>
+                       <input type="number" class="rimanenza-fornitore calculated-field" readonly>
                    </div>
                </div>
 
@@ -1834,14 +1847,25 @@ $(document).ready(function() {
        updateAllTransferOptions();
    };
 
+   // MODIFICATA: Calcolo fornitore con somma giacenza + entrata e rimanenza al posto di giacenza
    window.calculateSupplier = function(index) {
        const card = $(`.supplier-card[data-supplier-index="${index}"]`);
        
-       // Calcola giacenza
-       const entrata = parseFloat(card.find('.quantita-fornitore').val()) || 0;
+       // NUOVO: Calcola entrata totale (giacenza + entrata)
+       const giacenzaIniziale = parseFloat(card.find('.giacenza-iniziale').val()) || 0;
+       const entrataBase = parseFloat(card.find('.quantita-fornitore').val()) || 0;
+       const entrataDisplay = giacenzaIniziale + entrataBase;
+       
+       // Mostra entrata totale calcolata nel campo entrata
+       if (giacenzaIniziale > 0) {
+           card.find('.quantita-fornitore').val(entrataDisplay);
+       }
+       
        const trasformata = parseFloat(card.find('.quantita-trasformata').val()) || 0;
-       const giacenza = entrata - trasformata;
-       card.find('.giacenza-fornitore').val(giacenza >= 0 ? giacenza : 0);
+       
+       // MODIFICATO: Calcola rimanenza (entrata totale - trasformata)
+       const rimanenza = entrataDisplay - trasformata;
+       card.find('.rimanenza-fornitore').val(rimanenza >= 0 ? rimanenza : 0);
        
        // Calcola quantità prodotti
        const resaPrima = parseFloat(card.find('.resa-prima').val()) || 0;
@@ -2132,6 +2156,7 @@ window.updateBioStyles = function(index) {
        });
    }
 
+   // MODIFICATA: Funzione di trasferimento con sottrazione dal fornitore mittente
    window.executeTransfer = function(sourceIndex) {
        const sourceCard = $(`.supplier-card[data-supplier-index="${sourceIndex}"]`);
        const targetIndex = sourceCard.find('.transfer-destination').val();
@@ -2166,6 +2191,11 @@ window.updateBioStyles = function(index) {
            return;
        }
        
+       // NUOVO: Sottrai dal fornitore mittente
+       const currentSourceQty = parseFloat(sourceCard.find('.quantita-prima').val()) || 0;
+       const newSourceQty = currentSourceQty - transferAmount;
+       sourceCard.find('.quantita-prima').val(newSourceQty.toFixed(1));
+       
        // Aggiorna quantità del fornitore di destinazione
        const currentTargetQty = parseFloat(targetCard.find('.quantita-prima').val()) || 0;
        const newTargetQty = currentTargetQty + transferAmount;
@@ -2192,8 +2222,9 @@ window.updateBioStyles = function(index) {
        updateDistributionTotal(targetIndex);
        updateDistributionTotal(sourceIndex);
        updateSupplierConcentrato(targetIndex);
+       updateSupplierConcentrato(sourceIndex); // AGGIUNTO: Aggiorna anche il mittente
        
-       alert(`Trasferimento completato!\n${transferAmount} kg trasferiti da F${sourceIndex} (${sourceName}) a F${targetIndex} (${targetName})\nNuova quantità F${targetIndex}: ${newTargetQty.toFixed(1)} kg`);
+       alert(`Trasferimento completato!\n${transferAmount} kg trasferiti da F${sourceIndex} (${sourceName}) a F${targetIndex} (${targetName})\nNuova quantità F${sourceIndex}: ${newSourceQty.toFixed(1)} kg\nNuova quantità F${targetIndex}: ${newTargetQty.toFixed(1)} kg`);
    };
 
    function getSupplierDisplayName(card) {
@@ -2238,9 +2269,10 @@ window.updateBioStyles = function(index) {
            // Reset tutti i campi
            card.find('.nome-fornitore').val('');
            card.find('.altro-fornitore').val('').addClass('hidden-field');
+           card.find('.giacenza-iniziale').val(''); // NUOVO CAMPO
            card.find('.quantita-fornitore').val('');
            card.find('.quantita-trasformata').val('');
-           card.find('.giacenza-fornitore').val('');
+           card.find('.rimanenza-fornitore').val(''); // MODIFICATO
            card.find('.certificazione-prodotto').val('');
            card.find('.altra-certificazione').val('').addClass('hidden-field');
            card.find('.varieta-prodotto').val('');
@@ -2312,24 +2344,25 @@ window.updateBioStyles = function(index) {
        }
    };
 
+   // MODIFICATA: Aggiorna totali con rimanenza al posto di giacenza
    function updateTotals() {
        let totaleEntrata = 0;
        let totaleTrasformata = 0;
-       let totaleGiacenza = 0;
+       let totaleRimanenza = 0;
        
        $('.supplier-card').each(function() {
            const entrata = parseFloat($(this).find('.quantita-fornitore').val()) || 0;
            const trasformata = parseFloat($(this).find('.quantita-trasformata').val()) || 0;
-           const giacenza = parseFloat($(this).find('.giacenza-fornitore').val()) || 0;
+           const rimanenza = parseFloat($(this).find('.rimanenza-fornitore').val()) || 0;
            
            totaleEntrata += entrata;
            totaleTrasformata += trasformata;
-           totaleGiacenza += giacenza;
+           totaleRimanenza += rimanenza;
        });
        
        $('#entrata-giornaliera-display').text(totaleEntrata.toLocaleString());
        $('#trasformata-totale-display').text(totaleTrasformata.toLocaleString());
-       $('#giacenza-totale-display').text(totaleGiacenza.toLocaleString());
+       $('#rimanenza-totale-display').text(totaleRimanenza.toLocaleString()); // MODIFICATO
    }
 
    function updateSuppliersCount() {
@@ -2820,9 +2853,10 @@ window.updateBioStyles = function(index) {
                supplierIndex: index,
                nome: $(this).find('.nome-fornitore').val(),
                altroNome: $(this).find('.altro-fornitore').val(),
+               giacenzaIniziale: parseFloat($(this).find('.giacenza-iniziale').val()) || 0, // NUOVO
                quantitaEntrata: parseFloat($(this).find('.quantita-fornitore').val()) || 0,
                quantitaTrasformata: parseFloat($(this).find('.quantita-trasformata').val()) || 0,
-               giacenza: parseFloat($(this).find('.giacenza-fornitore').val()) || 0,
+               rimanenza: parseFloat($(this).find('.rimanenza-fornitore').val()) || 0, // MODIFICATO
                certificazione: $(this).find('.certificazione-prodotto').val(),
                altraCertificazione: $(this).find('.altra-certificazione').val(),
                varieta: $(this).find('.varieta-prodotto').val(),
@@ -2955,7 +2989,7 @@ window.updateBioStyles = function(index) {
        $(this).val('');
    });
 
-   // MODIFICATA: Caricamento dati con caratteristiche destinazioni
+   // MODIFICATA: Caricamento dati con caratteristiche destinazioni e nuovi campi
    function loadDataFromObject(data) {
        // Ripristina dati base
        $('#tipo-agrume-giornaliero').val(data.tipoAgrume || '');
@@ -2984,9 +3018,10 @@ window.updateBioStyles = function(index) {
                // Ripristina dati fornitore
                card.find('.nome-fornitore').val(fornitore.nome || '');
                card.find('.altro-fornitore').val(fornitore.altroNome || '');
+               card.find('.giacenza-iniziale').val(fornitore.giacenzaIniziale || ''); // NUOVO
                card.find('.quantita-fornitore').val(fornitore.quantitaEntrata || '');
                card.find('.quantita-trasformata').val(fornitore.quantitaTrasformata || '');
-               card.find('.giacenza-fornitore').val(fornitore.giacenza || '');
+               card.find('.rimanenza-fornitore').val(fornitore.rimanenza || ''); // MODIFICATO
                card.find('.certificazione-prodotto').val(fornitore.certificazione || '');
                card.find('.altra-certificazione').val(fornitore.altraCertificazione || '');
                card.find('.varieta-prodotto').val(fornitore.varieta || '');
@@ -3261,4 +3296,3 @@ window.updateBioStyles = function(index) {
 </script>
 </body>
 </html>
-   
